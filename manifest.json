@@ -1,0 +1,13 @@
+
+{
+    "fileLocations": [
+        {
+            "URIs": [
+                "https://quicksightdata753.s3-us-west-2.amazonaws.com/report/jsonfile.json"
+            ]
+        }
+    ],
+    "globalUploadSettings": {
+        "format": "JSON"
+    }
+}
