@@ -37,15 +37,15 @@ def lambda_handler(event, context):
         summary_content = s3.get_object(Bucket=summary_bucket, Key=summary_key)
         # print(summary_content)
         summary_last_modified = summary_content['LastModified']
-        print(summary_last_modified)
+        # print(summary_last_modified)
 
         image_content = s3.get_object(Bucket=image_bucket, Key=image_folder + image_name)
         # print(image_content)
         image_last_modified = image_content['LastModified']
-        print(image_last_modified)
+        # print(image_last_modified)
 
         process_time = get_process_time(image_last_modified, summary_last_modified)
-        print(process_time.seconds)
+        # print(process_time.seconds)
         
 
 
@@ -55,6 +55,7 @@ def lambda_handler(event, context):
         # print(len(body))
         if len(body) is 0:
             print('len(body) is 0')
+            jsonArray = []
             item = {
                 'id': 1,
                 'image_name': image_name,
@@ -62,8 +63,20 @@ def lambda_handler(event, context):
                 'summary_path': summary_path,
                 'process_time': process_time.seconds
             }
+            jsonArray.append(item)
+            json_body = json.dumps(jsonArray)
+            print(json_body)
         else:
             print('len(body) > 0')
+
+            item = {
+                'id': 1,
+                'image_name': image_name,
+                'text_path': text_path,
+                'summary_path': summary_path,
+                'process_time': process_time.seconds
+            }
+            
         
         # json_array = json.loads(body)
         # if len(json_array)== 0:
@@ -113,25 +126,3 @@ def get_image_filename(bucket, image_folder, filename):
     if len(pdfObj) and pdfObj[0].key == pdf:
         return os.path.split(pdf)[1]
     return None
-
-        # print(summary_last_modified)
-        # {'ResponseMetadata': {'RequestId': '77AD6C7096E3BDC6', 
-        # 'HostId': '/E6xFyL8QsEZ8nuki56q1Ar0uNXP3EG4B8ELqHtSYVsvnM7q6dWZfz9bDM+Ites2h1MUj+mMQMI=', 
-        # 'HTTPStatusCode': 200, 
-        # 'HTTPHeaders': {'x-amz-id-2': '/E6xFyL8QsEZ8nuki56q1Ar0uNXP3EG4B8ELqHtSYVsvnM7q6dWZfz9bDM+Ites2h1MUj+mMQMI=', 
-        # 'x-amz-request-id': '77AD6C7096E3BDC6', 
-        # 'date': 'Wed, 14 Aug 2019 06:20:17 GMT', 
-        # 'last-modified': 'Tue, 13 Aug 2019 23:35:50 GMT', 
-        # 'etag': '"2f6a56a24959bf995709f16c21bb506f"', 
-        # 'accept-ranges': 'bytes', 
-        # 'content-type': 'image/png', 
-        # 'content-length': '109894', 
-        # 'server': 'AmazonS3'}, 
-        # 'RetryAttempts': 0}, 
-        # 'AcceptRanges': 'bytes', 
-        # 'LastModified': datetime.datetime(2019, 8, 13, 23, 35, 50, tzinfo=tzutc()), 
-        # 'ContentLength': 109894, 
-        # 'ETag': '"2f6a56a24959bf995709f16c21bb506f"', 
-        # 'ContentType': 'image/png', 
-        # 'Metadata': {}, 
-        # 'Body': <botocore.response.StreamingBody object at 0x7f72f04ac080>}
