@@ -3,7 +3,7 @@
     "fileLocations": [
         {
             "URIs": [
-                "https://quicksightdata753.s3-us-west-2.amazonaws.com/report/jsonfile.json"
+                "https://textractreport.s3-us-west-2.amazonaws.com/matt/report/usage.json"
             ]
         }
     ],

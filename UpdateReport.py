@@ -10,11 +10,13 @@ report_key = 'matt/report/usage.json'
 report_key_gz = 'matt/reportgz/usage.json.gz'
 image_folder = 'imgstore/'
 text_folder = 'imgstore/'
+pdf_folder = '/'
 
 # buckts must in the same region as event bucket
 text_bucket = 'textracttext'
 report_bucket = 'textractreport'
 image_bucket = 'textractimage'
+pdf_bucket = 'textractpdf1321'
 
 
 def lambda_handler(event, context):
@@ -28,6 +30,7 @@ def lambda_handler(event, context):
     # print(filename)
 
     image_name = get_image_filename(image_bucket, image_folder, filename)
+    
     text_key = text_folder + '/' + filename
     text_path = get_path(text_bucket, text_key, summary_region)
     summary_path = get_path(summary_bucket, summary_key, summary_region)
@@ -94,6 +97,17 @@ def get_process_time(start, end):
 
 def get_path(bucket, key, region):
     return 'https://' + bucket + '.s3-' + region + '.amazonaws.com/' + key
+
+def get_pdf_filename(bucket, pdf_folder, filename):
+    s3res = boto3.resource('s3')
+    pdf_folder = s3res.Bucket(bucket)
+    filename_partial = os.path.splitext(filename)[0]
+    pdf = pdf_folder + filename_partial + '.pdf'
+
+    pdfObj = list(image_bucket.objects.filter(Prefix=pdf))
+    if len(pdfObj) and pdfObj[0].key == pdf:
+        return os.path.split(pdf)[1]
+    return None
 
 
 def get_image_filename(bucket, image_folder, filename):
