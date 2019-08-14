@@ -11,7 +11,7 @@ report_key_gz = 'matt/reportgz/usage.json.gz'
 image_folder ='imgstore/'
 text_folder = 'imgstore/'
 
-#buckts must in the same region
+#buckts must in the same region as event bucket
 text_bucket = 'textracttext'
 report_bucket = 'textractreport'
 image_bucket = 'textractimage'
@@ -25,37 +25,37 @@ def lambda_handler(event, context):
 
     filename = os.path.split(summary_key)[1]
     # print(filename)
-    suffix = filename.split('.')[-1]
-    # print(suffix)
-    
-    try:
-        image_name = get_image_filename(image_bucket, image_folder, filename)
-        text_key = text_folder + '/' + filename
-        text_path = get_text_path(text_bucket, text_key)
-        summary_path = get_summary_path(summary_bucket, summary_key, summary_region)
 
+    image_name = get_image_filename(image_bucket, image_folder, filename)
+    text_key = text_folder + '/' + filename
+    text_path = get_path(text_bucket, text_key, summary_region)
+    summary_path = get_path(summary_bucket, summary_key, summary_region)
+
+    try:
         summary_content = s3.get_object(Bucket=summary_bucket, Key=summary_key)
         # print(summary_content)
-        summary_last_modified = summary_content['LastModified']
-        # print(summary_last_modified)
-
         image_content = s3.get_object(Bucket=image_bucket, Key=image_folder + image_name)
         # print(image_content)
-        image_last_modified = image_content['LastModified']
-        # print(image_last_modified)
-
-        process_time = get_process_time(image_last_modified, summary_last_modified)
-        # print(process_time.seconds)
-        
-
-
         report_content = s3.get_object(Bucket=report_bucket, Key=report_key)
         # print(report_content)
+    except Exception as e:
+        print(e)
+        print('Error getting object {} from bucket {}. Make sure they '
+        + 'exist and your bucket is in the same region as this function.')
+        raise e
+
+    try:
+        summary_last_modified = summary_content['LastModified']
+        # print(summary_last_modified)
+        image_last_modified = image_content['LastModified']
+        # print(image_last_modified)
+        process_time = get_process_time(image_last_modified, summary_last_modified)
+        # print(process_time.seconds)
         body = report_content['Body'].read().decode('utf-8')
         # print(len(body))
         if len(body) is 0:
             print('len(body) is 0')
-            jsonArray = []
+            json_array = []
             item = {
                 'id': 1,
                 'image_name': image_name,
@@ -63,8 +63,8 @@ def lambda_handler(event, context):
                 'summary_path': summary_path,
                 'process_time': process_time.seconds
             }
-            jsonArray.append(item)
-            json_body = json.dumps(jsonArray)
+            json_array.append(item)
+            json_body = json.dumps(json_array)
             print(json_body)
         else:
             print('len(body) > 0')
@@ -76,8 +76,11 @@ def lambda_handler(event, context):
                 'summary_path': summary_path,
                 'process_time': process_time.seconds
             }
-            
-        
+    except Exception as e:
+        print(e)
+        raise e
+        #TODO: insert data to json and save to s3
+
         # json_array = json.loads(body)
         # if len(json_array)== 0:
         #     print('len is 0')
@@ -89,21 +92,12 @@ def lambda_handler(event, context):
         # json_body = json.dumps(json_array)
         # s3.put_object(Body=json_body, Bucket=report_bucket, Key=new_report_key)
         
-        return event
-    except Exception as e:
-        print(e)
-        print('Error getting object {} from bucket {}. Make sure they '
-        + 'exist and your bucket is in the same region as this function.'
-        .format(report_key, report_bucket))
-        raise e
+    return event
 
 def get_process_time(start, end):
     return end - start
-
-def get_text_path(bucket, key):
-        return 's3://' + bucket + '/' + key
     
-def get_summary_path(bucket, key, region):
+def get_path(bucket, key, region):
         return 'https://' + bucket + '.s3-' + region + '.amazonaws.com/' + key
 
 def get_image_filename(bucket, image_folder, filename):
