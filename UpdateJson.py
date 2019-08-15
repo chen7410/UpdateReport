@@ -1,5 +1,6 @@
 import json
 import gzip
+import datetime
 def main():
     jsonArray = []
 
@@ -25,19 +26,24 @@ def main():
     except ValueError as e: 
         print ("Is valid json? false") 
 
-    with open('usage.json', 'r') as infile:
-        jsonObj = json.load(infile)
-        jsonObj.append({'id': 99, 'image': str(99)+'.png', 'textPath': str(99)+'.txt', 'textPathModfied': '2019-9-9 12:12:12',
-    'summaryPath': str(99)+'summary.txt', 'summaryPathModfied': '2019-9-9 12:12:20', 'processTimeSecond': 99})
-    infile.close()
-    print(jsonObj[-1]['id'])
+    # with open('usage.json', 'r') as infile:
+    #     jsonObj = json.load(infile)
+    #     jsonObj.append({'id': 99, 'image': str(99)+'.png', 'textPath': str(99)+'.txt', 'textPathModfied': '2019-9-9 12:12:12',
+    # 'summaryPath': str(99)+'summary.txt', 'summaryPathModfied': '2019-9-9 12:12:20', 'processTimeSecond': 99})
+    # infile.close()
+    # print(jsonObj[-1]['id'])
 
-    with open('usage.json', 'w') as out:
-        newFile = json.dump(jsonObj, out, indent=4)
-        out.close()
+    # with open('usage.json', 'w') as out:
+    #     newFile = json.dump(jsonObj, out, indent=4)
+    #     out.close()
 
-    with gzip.open('usage.json.gz', 'wb') as out_zip:
-        out_zip.write(json.dumps(jsonObj).encode('utf-8'))
-        out_zip.close()
+    # with gzip.open('usage.json.gz', 'wb') as out_zip:
+    #     out_zip.write(json.dumps(jsonObj).encode('utf-8'))
+    #     out_zip.close()
+    
 
+    year = datetime.datetime.now().year
+    month = datetime.datetime.now().month
+    day = datetime.datetime.now().day
+    print(year, month, day)
 main()
