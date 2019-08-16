@@ -3,7 +3,7 @@
     "fileLocations": [
         {
             "URIs": [
-                "https://textractreport.s3-us-west-2.amazonaws.com/matt/report/usage.json"
+                "https://textractreport.s3-us-west-2.amazonaws.com/textract/report/usage.json"
             ]
         }
     ],
