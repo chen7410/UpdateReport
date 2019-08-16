@@ -29,26 +29,21 @@ def lambda_handler(event, context):
     summary_event_time = event['Records'][0]['eventTime']
     filename = os.path.split(summary_key)[1]
     middle_path = get_middle_path(summary_key)
-    print(middle_path)
+    print('middle path ' + middle_path)
 
-    image_name = get_image_filename(image_bucket, image_folder, middle_path, filename)
-    print(image_name)
-
-    
-
+    image_name = get_upload_filename(image_bucket, image_folder, middle_path, filename)
+    pdf_name = get_upload_filename(pdf_bucket, pdf_folder, middle_path, filename)
     try:
         #Make sure image_content exist
         if image_name is not None:
             image_content = s3.get_object(
                 Bucket=image_bucket, Key=image_folder + middle_path + image_name)
         else:
-            pdf_name = get_image_filename(pdf_bucket, pdf_folder, middle_path, filename)
-            print(pdf_name)
             image_content = s3.get_object(
                 Bucket=pdf_bucket, Key=pdf_folder + middle_path + pdf_name)
-        print(summary_key)
         summary_content = s3.get_object(Bucket=summary_bucket, Key=summary_key)
         report_content = s3.get_object(Bucket=report_bucket, Key=report_key)
+
     except Exception as e:
         print(e)
         print('Error getting object image from bucket image. Make sure they '
@@ -59,17 +54,11 @@ def lambda_handler(event, context):
     text_key = text_folder + '/' + filename
     summary_last_modified = summary_content['LastModified']
     image_last_modified = image_content['LastModified']
-    process_time = get_process_time(
-        image_last_modified, summary_last_modified)
-
+    process_time = get_process_time(image_last_modified, summary_last_modified)
     body = report_content['Body'].read().decode('utf-8')
 
     summary_path = get_complete_path(summary_bucket, summary_folder, middle_path, filename)
     text_path = get_complete_path(text_bucket, text_folder, middle_path, filename)
-
-    # print(summary_last_modified)
-    # print(summary_content)
-
 
     #insert new data to the report
     json_array = []
@@ -93,7 +82,6 @@ def lambda_handler(event, context):
     json_array.append(item)
     json_body = json.dumps(json_array)
     s3.put_object(Body=json_body, Bucket=report_bucket, Key=report_key)
-    # print(json_body)
     return 'Done'
 
 #get the middle path e.g. 2019/08/16/, excluding the folder and filename
@@ -114,13 +102,13 @@ def get_complete_path(bucket, folder, middle, filename):
 def get_process_time(start, end):
     return end - start
 
-def get_image_filename(bucket, image_folder, middle_path, filename):
+def get_upload_filename(bucket, folder, middle_path, filename):
     s3res = boto3.resource('s3')
     image_bucket = s3res.Bucket(bucket)
     filename_partial = os.path.splitext(filename)[0]
-    png = image_folder + middle_path + filename_partial + '.png'
-    jpeg = image_folder + middle_path + filename_partial + '.jpg'
-    pdf = image_folder + middle_path + filename_partial + '.pdf'
+    png = folder + middle_path + filename_partial + '.png'
+    jpeg = folder + middle_path + filename_partial + '.jpg'
+    pdf = folder + middle_path + filename_partial + '.pdf'
 
     pngObj = list(image_bucket.objects.filter(Prefix=png))
     if len(pngObj) and pngObj[0].key == png:
@@ -132,23 +120,6 @@ def get_image_filename(bucket, image_folder, middle_path, filename):
 
     pdfObj = list(image_bucket.objects.filter(Prefix=pdf))
     if len(pdfObj) and pdfObj[0].key == pdf:
-        print('i am pdf')
         return os.path.split(pdf)[1]
 
     return None
-
-def get_pdf_filename(bucket, pdf_folder, filename):
-        s3res = boto3.resource('s3')
-        pdf_bucket = s3res.Bucket(bucket)
-        filename_partial = os.path.splitext(filename)[0]
-        pdf = pdf_folder + filename_partial + '.pdf'
-    
-        #TODO check folder
-        objs = list(pdf_bucket.objects.all())
-        # print(objs)
-    
-    
-        pdfObj = list(pdf_bucket.objects.filter(Prefix=pdf))
-        if len(pdfObj) and pdfObj[0].key == pdf:
-            return os.path.split(pdf)[1]
-        return None
