@@ -60,12 +60,7 @@ def main(args):
     logfile.write(cwd+'\n')
     logfile.write(starttime+'\n')
     
-    my_access_key='hmf7iKq4R6L6wAbJX1f'
-    my_id='AKIA4F52A4'
-    #LOLOLOLOLOL
-    #EXPOSED KEY ON GITHUB WHATCHA GONNA DO
-    my_access_key+='YB1Qd1h5I+V3YIKTsMNGd'
-    my_id+='XR6FM2QMP5'
+    
     
     
     s3 = boto3.client('s3',    aws_access_key_id=my_id,
