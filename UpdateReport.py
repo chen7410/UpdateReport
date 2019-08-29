@@ -29,18 +29,15 @@ def lambda_handler(event, context):
     summary_event_time = event['Records'][0]['eventTime']
     filename = os.path.split(summary_key)[1]
 
-    print('summary_key 111 ' + summary_key)
+    summary_content = s3.get_object(Bucket=summary_bucket, Key=summary_key)
+    summary_last_modified = summary_content['LastModified']
+
+    print('summary_key ' + summary_key)
 
     # print('image_bucket ' + image_bucket)
-    image_name = ''
-    image_key = get_key_from_bucket(image_bucket, filename)
-    if image_key is None:
-        #it's multiple
-        image_key = get_multiple_from_image(image_bucket, filename)
-        image_name = os.path.split(image_key)[0]
-
-    else:
-        image_name = os.path.split(image_key)[1]
+    
+    image_key = get_last_modified_key_from_bucket(image_bucket, filename, summary_last_modified)
+    image_name = os.path.split(image_key)[1]
 
     print('file name ' + filename)
     
@@ -57,16 +54,6 @@ def lambda_handler(event, context):
         raise e
 
     try:
-        print('summary_bucket ' + summary_bucket)
-        print('summary_key ' + summary_key)
-        summary_content = s3.get_object(Bucket=summary_bucket, Key=summary_key)
-        
-    except Exception as e:
-        print(e)
-        print('Error getting object summary from bucket summary.')
-        raise e
-
-    try:
         report_content = s3.get_object(Bucket=report_bucket, Key=report_key)
     except Exception as e:
         print(e)
@@ -75,13 +62,13 @@ def lambda_handler(event, context):
 
     #Prepare info to create the paths
     text_key = text_folder + '/' + filename
-    summary_last_modified = summary_content['LastModified']
+    
     image_last_modified = image_content['LastModified']
     process_time = get_process_time(image_last_modified, summary_last_modified)
     body = report_content['Body'].read().decode('utf-8')
 
-    summary_path = get_complete_path(summary_bucket, get_key_from_bucket(summary_bucket, filename))
-    text_path = get_complete_path(text_bucket, get_key_from_bucket(text_bucket, filename))
+    summary_path = get_complete_path(summary_bucket, get_last_modified_key_from_bucket(summary_bucket, filename, summary_last_modified))
+    text_path = get_complete_path(text_bucket, get_last_modified_key_from_bucket(text_bucket, filename, summary_last_modified))
 
 
 
@@ -105,8 +92,11 @@ def lambda_handler(event, context):
             'process_time': process_time.seconds
         }
     print(item)
+
     json_array.append(item)
     json_body = json.dumps(json_array)
+    
+    
     try:
         s3.put_object(Body=json_body, Bucket=report_bucket, Key=report_key)
     except Exception as e:
@@ -115,46 +105,39 @@ def lambda_handler(event, context):
         raise e
     return 'Done'
 
-#get the middle path e.g. 2019/08/16/, excluding the folder and filename
-#folder must have at least 3 levels
-def get_middle_path(key):
-    head = os.path.split(key)[0]
-    headArr = head.split('/')
-    middle = ''
-    for i in range(2, len(headArr)):
-        middle += headArr[i] + '/'
-    return middle
-
 
 #create the path using the given param
 def get_complete_path(bucket, key):
     return os.path.join(bucket, key)
 
 def get_process_time(start, end):
+    # print('start ' + str(start))
+    # print('end ' + str(end))
     return end - start
 
-def get_key_from_bucket(bucket, filename):
+def get_last_modified_key_from_bucket(bucket, filename, last_modified):
     filename_partial = os.path.splitext(filename)[0]
-
+    key_match = {}
+    #find all match keys
     for key in s3.list_objects(Bucket=bucket)['Contents']:
+        # print('key ' + str(key))
         keyname = os.path.split(key['Key'])[1]
         keypath =  os.path.split(key['Key'])[0]
         keyname_partial = os.path.splitext(keyname)[0]
         if filename_partial == keyname_partial:
-            # print(os.path.join(keypath, keyname))
-            return os.path.join(keypath, keyname)
-        
-            
-    return None
+            key_match[key['LastModified']] = os.path.join(keypath, keyname)
+    
+    #find the least key from the match key
+    least_key = ''
+    big_int = 99999
+    second = datetime.timedelta(big_int)
+    # print('last_modified ' + str(last_modified))
+    for key in key_match:
+        # print('key modified ' + str(key) + 'key path ' + key_match[key])
+        if get_process_time(key, last_modified) < second:
+            second = last_modified - key
+            # print('second ' + str(second))
+            least_key = key_match[key]
+    # print('least_key return ' + str(least_key) + 'time lap ' + str(second))
+    return least_key
 
-
-def get_multiple_from_image(image_bucket, filename):
-    filename_partial = os.path.splitext(filename)[0]
-    for key in s3.list_objects(Bucket=image_bucket)['Contents']:
-        keyname = os.path.split(key['Key'])[1]
-        keypath =  os.path.split(key['Key'])[0]
-        folder = keypath.split('/')[-1]
-        
-        if folder == filename_partial:
-            return os.path.join(keypath, keyname)
-            print('multiple image path ' + os.path.join(keypath, keyname))
